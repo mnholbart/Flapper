@@ -2,14 +2,18 @@
   "name": "flapper",
   "version": "1.0.0",
   "description": "penguins",
-  "main": "server/server.js",
+  "main": "src/server/server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-	"start": "node server/server.js"
+    "start": "node src/server/server.js",
+    "watch": "watchify src/client/js/app.js -o src/client/dist/bundle.js --debug --verbose",
+    "build": "browserify src/client/js/app.js -o src/client/dist/bundle.js"
   },
   "author": "Morgan Holbart",
   "dependencies": {
+    "browserify": "^13.0.1",
     "express": "^4.13.4",
-    "socket.io": "^1.4.6"
+    "socket.io": "^1.4.6",
+    "socket.io-client": "^1.4.8",
+    "watchify": "^3.7.0"
   }
 }
