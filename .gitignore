@@ -1,4 +1,4 @@
-src/client/dist/*
+src/client/js/dist/*
 node_modules
 npm-debug.log
 .idea
