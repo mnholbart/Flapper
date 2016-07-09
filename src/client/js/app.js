@@ -11,8 +11,6 @@ var bg = c.getContext('2d');
 
 var socket;
 
-var KEY_ENTER = 13;
-
 var player = {
 	id: -1,
 	screenWidth: global.screenWidth,
@@ -27,10 +25,8 @@ function startGame(type) {
 	global.screenWidth = window.innerWidth;
 	global.screenHeight = window.innerHeight;
 	
-	document.getElementById('startMenuWrapper').style.display = 'none';
-	//document.getElementById('startMenuWrapper').style.maxHeight = '0px';
-    //document.getElementById('gameAreaWrapper').style.opacity = 1;
-	document.getElementById('gameAreaWrapper').style.display = 'block';
+	document.getElementById('startMenuWrapper').style.maxHeight = '0px'; //hide start menu
+    document.getElementById('gameAreaWrapper').style.opacity = 1; //Once theres a game running in the background remove this and default the css to opacity 1
 	
 	if (!socket) {
 		socket = io({query:"type=" + type});
@@ -40,14 +36,17 @@ function startGame(type) {
 	if (!global.animLoopHandle)
 		animloop();
 	
-	socket.emit('respawn');
+	socket.emit('respawn', global.player);
 	global.socket = socket;
 }
 
 // check if nick is valid alphanumeric characters (and underscores)
 function validNick() {
+	if (!playerNameInput.value)
+		return false;
+	
     var regex = /^\w*$/;
-    console.log('Regex Test', regex.exec(playerNameInput.value));
+    //console.log('Regex Test', regex.exec(playerNameInput.value));
     return regex.exec(playerNameInput.value) !== null;
 }
 
@@ -61,26 +60,43 @@ window.onload = function() {
 
         // check if the nick is valid
         if (validNick()) {
+			nickErrorText.style.opacity = 0;
             startGame('player');
         } else {
-            nickErrorText.style.display = 'inline';
+            nickErrorText.style.opacity = 1;
         }
     };
 
     playerNameInput.addEventListener('keypress', function (e) {
         var key = e.which || e.keyCode;
-
-        if (key === KEY_ENTER) {
+		
+		if (global.gameStarted) { //probably need to just remove/readd the listener when game starts/ends
+			return;
+		}
+		
+        if (key === global.KEY_ENTER) {
             if (validNick()) {
-                startGame();
+				nickErrorText.style.opacity = 0;
+                startGame('player');
             } else {
-                nickErrorText.style.display = 'inline';
+				nickErrorText.style.opacity = 1;
             }
         }
     });
 };
 
 function SetupSocket(socket) {
+	
+	socket.on('connect_failed', function () {
+        socket.close();
+        global.connected = false;
+    });
+
+    socket.on('disconnect', function () {
+        socket.close();
+        global.connected = false;
+    });
+
 	//Handle connection
 	socket.on('welcome', function(playerSettings) {
 		player = playerSettings;
@@ -88,6 +104,8 @@ function SetupSocket(socket) {
         player.screenWidth = global.screenWidth;
 		player.screenHeight = global.screenHeight;
 		global.player = player;
+		global.gameStarted = true;
+		global.dead = false;
 		
 		socket.emit('returnwelcome', player);
 	});
@@ -96,6 +114,28 @@ function SetupSocket(socket) {
         global.gameWidth = data.gameWidth;
         global.gameHeight = data.gameHeight;
         resize();
+	});
+	
+	socket.on('kill', function() {
+		global.gameStarted = false;
+		global.dead = true;
+		
+		//Timer to remove death message and low respawning
+		window.setTimeout(function() {
+			document.getElementById('gameAreaWrapper').style.opacity = 0;
+			document.getElementById('startMenuWrapper').style.maxHeight = '1000px';
+			global.died = false;
+            if (global.animLoopHandle) {
+                window.cancelAnimationFrame(global.animLoopHandle);
+                global.animLoopHandle = undefined;
+			}
+		}, 2500);
+	});
+	
+	socket.on('forceRespawn', function() {
+		global.gameStarted = false;
+		global.dead = true;
+		socket.emit('respawn', global.player);
 	});
 }
 
@@ -115,12 +155,43 @@ function animloop(){
 }
 
 function gameLoop() {
-  handleLogic();
-  handleGraphics();
+	if (global.dead)
+		handleLogicDead();
+	else if (global.gameStarted)
+		handleLogicGame();
+	else handleLogicDefault();
 }
 
-function handleLogic() {
-	
+function handleLogicDead() {
+	drawLogicDead();
+}
+
+function drawLogicDead() {
+	bg.fillStyle = '#333333';
+	bg.fillRect(0, 0, global.screenWidth, global.screenHeight);
+
+	bg.textAlign = 'center';
+	bg.fillStyle = '#FFFFFF';
+	bg.font = 'bold 30px sans-serif';
+	bg.fillText('You are dead', global.screenWidth / 2, global.screenHeight / 2);
+}
+
+function handleLogicGame() {
+	drawLogicGame();
+}
+
+function drawLogicGame() {
+	bg.fillStyle = '#00FF00';
+	bg.fillRect(0, 0, global.screenWidth, global.screenHeight);
+}
+
+function handleLogicDefault() {
+	drawLogicDefault();
+}
+
+function drawLogicDefault() {
+	bg.fillStyle = '#B0171F';
+	bg.fillRect(0, 0, global.screenWidth, global.screenHeight);
 }
 
 function handleGraphics() {
@@ -128,13 +199,7 @@ function handleGraphics() {
 	bg.fillRect(0, 0, global.screenWidth, global.screenHeight);
 }
 
-window.addEventListener('resize', function() {
-    screenWidth = window.innerWidth;
-    screenHeight = window.innerHeight;
-    c.width = screenWidth;
-    c.height = screenHeight;
-}, true);
-
+window.addEventListener('resize', resize);
 
 function resize() {
     player.screenWidth = c.width = global.screenWidth = global.playerType == 'player' ? window.innerWidth : global.gameWidth;

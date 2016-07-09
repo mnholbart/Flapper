@@ -5,7 +5,7 @@
   "main": "src/server/server.js",
   "scripts": {
     "start": "node src/server/server.js",
-    "watch": "watchify src/client/js/app.js -o src/client/dist/bundle.js --debug --verbose",
+    "watch": "watchify src/client/js/app.js -o src/client/js/dist/bundle.js --debug --verbose",
     "build": "browserify src/client/js/app.js -o src/client/dist/bundle.js"
   },
   "author": "Morgan Holbart",

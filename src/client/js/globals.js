@@ -1,8 +1,11 @@
 var Globals = {
+	KEY_ENTER: 13,
+	
 	screenWidth: window.innerWidth,
 	screenHeight: window.innerHeight,
 	gameStarted: false,
-	died: false,
+	dead: false,
+	connected: true,
 }
 
 module.exports = Globals;

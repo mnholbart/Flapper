@@ -11,3 +11,8 @@ exports.findIndex = function(arr, id) {
 
     return -1;
 };
+
+exports.validNickname = function(nickname) {
+    var regex = /^\w*$/;
+    return regex.exec(nickname) !== null;
+};
